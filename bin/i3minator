@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+
+import os
+import i3
+import sys
+import stat
+
+from yaml     import load
+from time     import sleep
+from shutil   import copy, rmtree
+from tempfile import NamedTemporaryFile
+
+
+BASE_PATH = os.path.expanduser("~/.i3minator/")
+__version__ = "0.0.1"
+example_project = """# %(path)s
+
+# The Name of the project
+name: %(name)s
+
+# If needes, where the project lives. If present, all terminal will be opened here
+# and all commands are relative to this path.
+root: ~/projects/my_project/
+
+# The name of the workspace to open the project.
+# If not present, current workspace is used
+workspace_name: MyProject
+
+# Chain of commands to populate workspace.
+# Every element can be either a node (see below), or a command between:
+#   go_vertical, vertical, v:      change split mode into vertical
+#   go_horizontal, horizontal, h:  change split mode into vertical
+#   go_stacked, stacked:           set the layout to stacked
+#
+# Example for a rails application:
+window_chain:
+  - gvim
+  - console
+  - go_vertical
+  - server
+  - logs
+
+# Nodes. Each node represent a window. The available parameters are:
+#   command:  the command to execute
+#   terminal: whatever the command should be run in a terminal window
+#   timeout:  A window can take a while to be placed, if your layout does not come as you want,
+#             inceremnt the timeout for slow windows. default: 0.1
+nodes:
+    gvim:
+        terminal: false
+        command: gvim .
+        timeout: 0.3
+    console:
+        terminal: true
+        command: bundle exec rails c
+    server:
+        terminal: true
+        command: bundle exec rails s
+    logs:
+        terminal: true
+        command: tailf log/development.log
+"""
+
+
+class i3minatorProject:
+
+    def __init__(self, project):
+        self.project_file = project_location(project)
+
+        self.info = load(open(os.path.expanduser(self.project_file), "r"))
+        self.terminal = os.environ.get("TERM")
+
+    def run(self):
+        # Switch to worspace if specified
+        if "workspace_name" in self.info.keys():
+            print("Switching to " + self.info["workspace_name"])
+            i3.workspace(self.info["workspace_name"])
+
+        # Find Root of project, if existing
+        self.root_dir = False
+        if "root" in self.info.keys():
+            self.root_dir = os.path.expanduser(self.info["root"])
+
+        for step_name in self.info["window_chain"]:
+            if step_name in self.info["nodes"].keys():
+                self.spawn_node(step_name)
+            else:
+                # Special keys management, used to move in layout
+                if step_name in ["v", "go_vertical"]:
+                    print("Splitting vertical")
+                    i3.split("v")
+                elif step_name in ["h", "go_horizontal"]:
+                    print("Splitting horizontal")
+                    i3.split("h")
+                elif step_name in ["stacked", "go_stacked", "stack"]:
+                    i3.layout("stacked")
+
+    def spawn_node(self, node_name):
+        node = self.info["nodes"][node_name]
+
+        name = node_name if "name" not in node.keys() else node["name"]
+
+        if node["terminal"]:
+            command = "%s -e \"%s && $SHELL\"" % (self.terminal, node["command"])
+            if self.root_dir:
+                command = "(cd %(path)s ; %(terminal)s -T %(name)s -e $SHELL -l -c \"%(command)s; $SHELL\")&" % \
+                    {
+                        'path': self.root_dir,
+                        'command': node["command"],
+                        'name': name,
+                        'terminal': self.terminal
+                    } 
+        else:
+            command = node["command"]
+            if self.root_dir:
+                command = "cd %s && %s" %(self.root_dir, node["command"])
+        print("Executing " + command)
+        script = NamedTemporaryFile("w", prefix="i3p_")
+        script.file.write(command + "\n")
+        script.file.close()
+        current_stats = os.stat(script.name)
+        os.chmod(script.name, current_stats.st_mode | stat.S_IEXEC)
+        i3.exec(script.name)
+        timeout = 0.1 if "timeout" not in node.keys() else node["timeout"]
+        sleep(timeout)
+
+
+def print_help():
+    help_string = """i3minator commands:
+    i3minator commands                  # Lists commands available in i3minator
+    i3minator copy [EXISTING] [NEW]     # Copy an existing project to a new project and open it in your editor
+    i3minator delete [PROJECT]          # Deletes given project
+    i3minator impolode                  # Delete all i3minator project, as well as the ~/.i3minator folder
+    i3minator list                      # List all i3minator projects
+    i3minator new [PROJECT]             # Create a new project and open in your text editor
+    i3minator start [PROJECT]           # Start a i3minator project
+    i3minator version                   # Display installed i3minator version
+"""
+    print(help_string)
+
+def project_location(project):
+    if not (project.endswith(".yaml") or project.endswith(".yml")):
+        project += ".yml"
+    return "%s%s" % (BASE_PATH, project)
+
+def project_exists(project):
+    try:
+        with open(project_location(project)): return True
+    except IOError:
+        return False
+
+def copy_project(target, source = None):
+    if not os.path.exists(BASE_PATH):
+        os.mkdir(BASE_PATH)
+    target_file = project_location(target)
+    if source is None:
+        f = open(target_file, "w")
+        f.write(example_project % {
+            'name': target,
+            'path': target_file
+            })
+        f.close()
+        return True
+
+    source_file = project_location(source)
+    print("Copy", source_file, target_file)
+    copy(source_file, target_file)
+    return True
+
+def check_args(command, num = 3, placeholder = "[PROJECT]"):
+    if len(sys.argv) < num:
+        sys.stderr.write("ERROR: i3minator was called with no arguments\n")
+        sys.stderr.write("Usage: \"i3minator %s %s\"\n" % (command, placeholder))
+        exit(1)
+    if len(sys.argv) > num:
+        sys.stderr.write("ERROR: i3minator was called with arguments " + str(sys.argv[2:]) + "\n")
+        sys.stderr.write("Usage: \"i3minator %s %s\"\n" % (command, placeholder))
+        exit(1)
+
+def confirm(message):
+    sys.stdout.write('\033[91m%s\033[0m [y/N] ' % message)
+    choice = input().lower()
+    if choice in ["yes", "y"]:
+        return True
+    else:
+        return False
+
+def edit_project(project):
+    editor = os.environ.get("EDITOR")
+    os.system("%s %s" % (editor, project_location(project)))
+
+if __name__ == "__main__":
+
+    if len(sys.argv) is 1:
+        print_help()
+        exit(0)
+
+
+    if sys.argv[1] == "commands":
+        # Lists commands
+        print_help()
+        exit(0)
+
+    elif sys.argv[1] == "copy":
+        # Copy existing project
+        check_args("copy", 4, "[EXISTING] [NEW]")
+        if project_exists(sys.argv[2]):
+            copy_project(sys.argv[3], sys.argv[2])
+            edit_project(sys.argv[3])
+        else:
+            # Project not existing
+            sys.stderr.write("Project %s doesn't exists\n" % sys.argv[2])
+
+    elif sys.argv[1] == "delete":
+        # Delete project
+        check_args("delete")
+        if project_exists(sys.argv[2]):
+            if confirm("Are you sure you want to delete %s" % sys.argv[2]):
+                os.remove(project_location(sys.argv[2]))
+        else:
+            sys.stderr.write("Project %s doesn't exists\n" % sys.argv[2])
+
+    elif sys.argv[1] == "implode":
+        if confirm("Are you sure you want to delete all i3minator projects?"):
+            rmtree(BASE_PATH)
+            print("Deleted all i3minator projects.")
+
+
+    elif sys.argv[1] == "new":
+        # Create new project
+        check_args("new")
+        copy_project(sys.argv[2])
+        edit_project(sys.argv[2])
+
+    elif sys.argv[1] == "start":
+        # Start given project
+        check_args("start")
+        if project_exists(sys.argv[2]):
+            p = i3minatorProject(sys.argv[2])
+            p.run()
+        else:
+            # Project not existing
+            sys.stderr.write("Project %s doesn't exists.\n" % sys.argv[2])
+
+    elif sys.argv[1] == "list":
+        # List availabe projects
+        files = [i for i in os.listdir(BASE_PATH) if (i.endswith(".yml") or i.endswith(".yaml"))]
+        print("i3minator projects:")
+        for i in files:
+            print(i.replace(".yml", "").replace(".yaml", ""))
+    elif sys.argv[1] == "version":
+        print("i3minator %s" % __version__)
+
