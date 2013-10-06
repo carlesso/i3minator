@@ -4,6 +4,14 @@ i3minator is a simple "workspace manager" for i3.
 It allows to quickly manage workspaces defining windows and their layout.
 The project is inspired by [tmuxinator](https://github.com/aziz/tmuxinator) and uses [i3-py](https://github.com/ziberna/i3-py).
 
+# Install
+
+i3minator can be installed with pip
+
+```shell
+$ sudo pip install i3minator
+```
+
 # Project description
 
 All project file are stored in `~/.i3minator/` and are in yaml format.
