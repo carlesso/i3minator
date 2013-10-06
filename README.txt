@@ -1,5 +1,0 @@
-=========
-i3minator
-=========
-
-i3minator is a i3-based version of tmuxinator

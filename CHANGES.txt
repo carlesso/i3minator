@@ -1,1 +1,2 @@
-v0.0.1, 2013-10-02 -- Initial release.
+v0.0.2, 2013-10-06 -- Added edit and help commands. Released under WTFLP License. Markdown version of README
+v0.0.1, 2013-10-06 -- Initial release.

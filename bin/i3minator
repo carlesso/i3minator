@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 import i3
@@ -12,7 +12,7 @@ from tempfile import NamedTemporaryFile
 
 
 BASE_PATH = os.path.expanduser("~/.i3minator/")
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 example_project = """# %(path)s
 
 # The Name of the project
@@ -129,8 +129,10 @@ def print_help():
     help_string = """i3minator commands:
     i3minator commands                  # Lists commands available in i3minator
     i3minator copy [EXISTING] [NEW]     # Copy an existing project to a new project and open it in your editor
+    i3minator edit [PROJECT]            # Edit given project
     i3minator delete [PROJECT]          # Deletes given project
-    i3minator impolode                  # Delete all i3minator project, as well as the ~/.i3minator folder
+    i3minator implode                   # Delete all i3minator project, as well as the ~/.i3minator folder
+    i3minator help                      # This help plus link to github repository
     i3minator list                      # List all i3minator projects
     i3minator new [PROJECT]             # Create a new project and open in your text editor
     i3minator start [PROJECT]           # Start a i3minator project
@@ -248,6 +250,21 @@ if __name__ == "__main__":
         print("i3minator projects:")
         for i in files:
             print(i.replace(".yml", "").replace(".yaml", ""))
+    elif sys.argv[1] == "edit":
+        # Edit project
+        check_args("edit")
+        if project_exists(sys.argv[2]):
+            edit_project(sys.argv[2])
+        else:
+            # Project not existing
+            sys.stderr.write("Project %s doesn't exists.\n" % sys.argv[2])
+
     elif sys.argv[1] == "version":
         print("i3minator %s" % __version__)
+
+    elif sys.argv[1] == "help":
+        print_help()
+        print("Additional information can be found at https://github.com/carlesso/i3minator")
+    else:
+        sys.stderr.write("Could not find command %s\n" % sys.argv[1])
 
