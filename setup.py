@@ -10,6 +10,6 @@ setup(
     url = 'https://github.com/carlesso/i3minator',
     license = 'LICENSE.txt',
     description = 'i3 project manager similar to tmuxinator',
-    long_description = open("README.md").read(),
+    long_description = open("README.txt").read(),
     install_requires = ['i3-py >= 0.6.4']
 )
