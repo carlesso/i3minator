@@ -120,7 +120,7 @@ class i3minatorProject:
         script.file.close()
         current_stats = os.stat(script.name)
         os.chmod(script.name, current_stats.st_mode | stat.S_IEXEC)
-        i3.exec(script.name)
+        i3.command("exec " + script.name)
         timeout = 0.1 if "timeout" not in node.keys() else node["timeout"]
         sleep(timeout)
 
