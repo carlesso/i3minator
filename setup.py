@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = 'i3minator',
-    version = '0.0.2',
+    version = '0.0.3',
     author = 'Enrico Carlesso',
     author_email = 'enricocarlesso@gmail.com',
     packages = ['i3minator'],
