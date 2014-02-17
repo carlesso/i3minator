@@ -85,12 +85,13 @@ i3minator commands:
 
 # Terminal and Editor
 
-Both Terminal and Editor are read from shell's defaults:
+Editor is read from shell's defaults:
 
 ```bash
-echo $TERM
 echo $SHELL
 ```
+
+Terminal is found by i3-sensible-terminal command.
 
 Right now has been tested only with xterm and zsh
 
