@@ -68,7 +68,7 @@ class i3minatorProject:
         self.project_file = project_location(project)
 
         self.info = load(open(os.path.expanduser(self.project_file), "r"))
-        self.terminal = os.environ.get("TERM")
+        self.terminal = "i3-sensible-terminal"
 
     def run(self):
         # Switch to worspace if specified
