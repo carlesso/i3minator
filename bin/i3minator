@@ -12,7 +12,7 @@ from tempfile import NamedTemporaryFile
 
 
 BASE_PATH = os.path.expanduser("~/.i3minator/")
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 example_project = """# %(path)s
 
 # The Name of the project
