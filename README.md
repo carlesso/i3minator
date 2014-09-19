@@ -1,5 +1,8 @@
 # i3minator
 
+Since now i3 supports[Layout saving/restoring](http://i3wm.org/docs/layout-saving.html),
+this project can be considered dead.
+
 i3minator is a simple "workspace manager" for i3.
 It allows to quickly manage workspaces defining windows and their layout.
 The project is inspired by [tmuxinator](https://github.com/aziz/tmuxinator) and uses [i3-py](https://github.com/ziberna/i3-py).
