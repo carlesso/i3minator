@@ -1,6 +1,6 @@
 # i3minator
 
-Since now i3 supports[Layout saving/restoring](http://i3wm.org/docs/layout-saving.html),
+Since now i3 supports [Layout saving/restoring](http://i3wm.org/docs/layout-saving.html),
 this project can be considered dead.
 
 i3minator is a simple "workspace manager" for i3.
